@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
 
       // ✅ If login successful, redirect to homepage
-      router.push("/");
+      router.push("/home");
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");

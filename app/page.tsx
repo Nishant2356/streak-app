@@ -2,7 +2,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Flame, Trophy, Clock, Target } from "lucide-react";
-import Navbar from "@/components/ui/Navbar";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -18,8 +17,7 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white flex flex-col items-center">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white flex flex-col items-center">
 
       {/* ========== HERO SECTION ========== */}
       <section className="flex flex-col items-center justify-center text-center py-20 max-w-2xl">
@@ -115,6 +113,6 @@ export default function LandingPage() {
         <span className="text-orange-400">Rajanshu</span> — Keep the streak
         alive 🔥
       </footer>
-    </main>
+    </div>
   );
 }

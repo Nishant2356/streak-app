@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
+import Navbar from "@/components/ui/Navbar";
 
 export const metadata: Metadata = {
   title: "Streak App",
@@ -9,14 +10,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
+      <body className="bg-black text-white">
+        <Providers>
+          <Navbar />
+          <main className="pt-20"> {/* Adds space below fixed navbar */}
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );
 }
+
