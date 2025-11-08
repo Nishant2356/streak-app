@@ -21,6 +21,37 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
+    // Validation
+    if (!name.trim()) {
+      setError("Name is required");
+      setLoading(false);
+      return;
+    }
+
+    if (!username.trim()) {
+      setError("Username is required");
+      setLoading(false);
+      return;
+    }
+
+    if (username.length < 3) {
+      setError("Username must be at least 3 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (!email.trim()) {
+      setError("Email is required");
+      setLoading(false);
+      return;
+    }
+
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       setLoading(false);
@@ -28,46 +59,68 @@ export default function RegisterPage() {
     }
 
     try {
-      let imageUrl = "";
+      let imageUrl: string | null = null;
 
-      // 🖼️ Upload image if user selected one (using Base64 for simplicity)
+      // Upload image to Cloudinary if selected
       if (image) {
-        const base64 = await convertToBase64(image);
-        
-        // upload to cloudinary
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64 }),
-        });
-      
-        const uploadData = await uploadRes.json();
-      
-        if (uploadRes.ok) {
-          imageUrl = uploadData.url;
-        } else {
-          setError("Failed to upload image");
-          setLoading(false);
-          return;
-        }
-      }      
+        try {
+          const base64 = await convertToBase64(image);
+          
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64 }),
+          });
 
-      router.push("/auth/login");
-    } catch (err) {
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            imageUrl = uploadData.url;
+          } else {
+            // If Cloudinary upload fails, continue without image
+            console.warn("Image upload failed, continuing without image");
+          }
+        } catch (uploadErr) {
+          // If Cloudinary is not configured or fails, continue without image
+          console.warn("Image upload error:", uploadErr);
+        }
+      }
+
+      // Call your Next.js API route
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: name.trim(), 
+          username: username.trim(), 
+          email: email.trim().toLowerCase(), 
+          password, 
+          image: imageUrl 
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || data.details || "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Success → redirect to login with success message
+      router.push("/auth/login?registered=true");
+    } catch (err: any) {
       console.error("Registration error:", err);
-      setError("Network error. Please try again.");
-    } finally {
+      setError(err.message || "Network error. Please check your connection and try again.");
       setLoading(false);
     }
   }
 
-  // helper to convert image to base64 string
   const convertToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
+      reader.onerror = (err) => reject(err);
     });
 
   return (
@@ -78,7 +131,6 @@ export default function RegisterPage() {
         transition={{ duration: 0.7 }}
         className="w-full max-w-md bg-zinc-900/80 p-8 rounded-2xl border border-zinc-800 shadow-xl shadow-orange-500/10"
       >
-        {/* Header */}
         <div className="flex flex-col items-center mb-6">
           <Flame className="text-orange-500 w-10 h-10 mb-2" />
           <h1 className="text-3xl font-bold">Create Account</h1>
@@ -87,12 +139,9 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">
-              Full Name
-            </label>
+            <label className="block text-sm text-zinc-400 mb-1">Full Name</label>
             <input
               type="text"
               required
@@ -139,31 +188,22 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Upload profile picture */}
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">
-              Profile Photo (optional)
-            </label>
+            <label className="block text-sm text-zinc-400 mb-1">Profile Photo (optional)</label>
             <label className="flex items-center justify-center gap-2 w-full bg-zinc-800 px-4 py-2 rounded-md cursor-pointer hover:bg-zinc-700 transition">
               <Upload className="w-4 h-4 text-orange-500" />
-              <span className="text-zinc-300">
-                {image ? image.name : "Choose image"}
-              </span>
+              <span className="text-zinc-300">{image ? image.name : "Choose image"}</span>
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) =>
-                  setImage(e.target.files ? e.target.files[0] : null)
-                }
+                onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)}
                 className="hidden"
               />
             </label>
           </div>
 
-          {/* Error message */}
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
