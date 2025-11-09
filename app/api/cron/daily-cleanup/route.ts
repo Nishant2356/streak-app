@@ -82,19 +82,13 @@ export async function GET(req: Request) {
       // Delete tasks that need cleanup:
       // 1. All completed tasks (regardless of deadline)
       // 2. All exceeded tasks that are not completed
-      const tasksToDelete: number[] = [];
+      const completedTaskIds = completedTasks.map(t => t.id);
+      const exceededIncompleteTaskIds = exceededTasks
+        .filter(t => !t.completed)
+        .map(t => t.id);
       
-      // Add all completed tasks
-      completedTasks.forEach(task => {
-        tasksToDelete.push(task.id);
-      });
-      
-      // Add exceeded tasks that are not completed
-      exceededTasks.forEach(task => {
-        if (!task.completed && !tasksToDelete.includes(task.id)) {
-          tasksToDelete.push(task.id);
-        }
-      });
+      // Combine all task IDs to delete (using Set to avoid duplicates)
+      const tasksToDelete = [...new Set([...completedTaskIds, ...exceededIncompleteTaskIds])];
       
       if (tasksToDelete.length > 0) {
         const deleteResult = await prisma.task.deleteMany({
@@ -102,7 +96,7 @@ export async function GET(req: Request) {
         });
         tasksDeleted += deleteResult.count;
         console.log(
-          `[Cron] User ${user.email}: Deleted ${deleteResult.count} task(s) (${completedTasks.length} completed, ${exceededTasks.filter(t => !t.completed).length} exceeded incomplete)`
+          `[Cron] User ${user.email}: Deleted ${deleteResult.count} task(s) (${completedTasks.length} completed, ${exceededIncompleteTaskIds.length} exceeded incomplete)`
         );
       }
     }
