@@ -78,13 +78,20 @@ export default function UserDashboard() {
 
   async function handleCompleteTask(taskId: number) {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      const res = await fetch(`/api/tasks/${taskId}`, { 
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
       if (res.ok) {
-        setTasks(tasks.filter((t) => t.id !== taskId));
-        alert("✅ Task completed!");
+        // Update UI locally - mark task as completed
+        setTasks(prevTasks => 
+          prevTasks.map(t => t.id === taskId ? { ...t, completed: true } : t)
+        );
+        // Refresh user data to get updated XP/stats
         const encodedEmail = encodeURIComponent(session?.user?.email || "");
         const userRes = await fetch(`/api/users/${encodedEmail}`);
         if (userRes.ok) setUser(await userRes.json());
+        alert("✅ Task marked as completed!");
       } else {
         const err = await res.json();
         alert("❌ Failed to complete task: " + err.error);
@@ -97,7 +104,7 @@ export default function UserDashboard() {
 
   async function handleDeleteTask(taskId: number) {
     if (!confirm("🗑 Are you sure you want to delete this task?")) return;
-  
+
     try {
       const res = await fetch(`/api/tasks/delete-only/${taskId}`, { method: "DELETE" });
       if (res.ok) {
@@ -112,7 +119,7 @@ export default function UserDashboard() {
       alert("Network error while deleting task.");
     }
   }
-  
+
 
   async function handleCreateTask() {
     try {
@@ -257,10 +264,13 @@ export default function UserDashboard() {
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl shadow-sm flex justify-between items-center"
+                className={`p-4 border rounded-xl flex justify-between items-center ${task.completed ? "bg-green-900 border-green-600 opacity-80" : "bg-zinc-900/60 border-zinc-800"
+                  }`}
               >
                 <div>
-                  <h3 className="text-lg font-semibold">{task.title}</h3>
+                  <h3 className={`text-lg font-semibold ${task.completed ? "line-through text-green-400" : ""}`}>
+                    {task.title}
+                  </h3>
                   {task.description && (
                     <p className="text-sm text-zinc-400">{task.description}</p>
                   )}
@@ -268,27 +278,27 @@ export default function UserDashboard() {
                     <span>🎯 {task.difficulty}</span>
                     <span>⚡ {task.xpReward} XP</span>
                     <span>📅 {task.priority}</span>
-                    {task.dueDate && (
-                      <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>
-                    )}
+                    {task.dueDate && <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>}
+                    {task.completed && <span className="text-green-400 font-semibold">✅ Completed</span>}
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 min-w-[100px]">
-                  <Button
-                    onClick={() => handleCompleteTask(task.id)}
-                    className="bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 w-full"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Done
-                  </Button>
-
-                  <Button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2 w-full"
-                  >
-                    🗑 Delete
-                  </Button>
-                </div>
+                {!task.completed && (
+                  <div className="flex flex-col gap-2 min-w-[100px]">
+                    <Button
+                      onClick={() => handleCompleteTask(task.id)}
+                      className="bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 w-full"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Done
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2 w-full"
+                    >
+                      🗑 Delete
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
 
