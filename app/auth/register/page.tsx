@@ -135,7 +135,7 @@ export default function RegisterPage() {
           <Flame className="text-orange-500 w-10 h-10 mb-2" />
           <h1 className="text-3xl font-bold">Create Account</h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Start your daily streak today 💪
+            Start your journey with Arise today 💪
           </p>
         </div>
 

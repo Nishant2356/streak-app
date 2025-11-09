@@ -4,7 +4,14 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Flame, Star, Trophy, PlusCircle, ClipboardList, CheckCircle } from "lucide-react";
+import {
+  Flame,
+  Star,
+  Trophy,
+  PlusCircle,
+  ClipboardList,
+  CheckCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,8 +45,9 @@ export default function UserDashboard() {
     description: "",
     difficulty: "EASY",
     priority: "MEDIUM",
-    dueDate: "",
+    dueDate: "", // Empty by default - API will set to tomorrow midnight
   });
+
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -54,6 +62,7 @@ export default function UserDashboard() {
         const encodedEmail = encodeURIComponent(session.user.email);
         const [userRes, taskRes] = await Promise.all([
           fetch(`/api/users/${encodedEmail}`),
+          // 🧹 Fetch tasks — expired ones auto-delete in backend
           fetch(`/api/tasks/user`),
         ]);
         if (userRes.ok) setUser(await userRes.json());
@@ -67,17 +76,12 @@ export default function UserDashboard() {
     fetchData();
   }, [session]);
 
-  // ✅ Mark task as completed (delete from DB)
   async function handleCompleteTask(taskId: number) {
     try {
-      console.log(taskId)
       const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-
       if (res.ok) {
-        setTasks(tasks.filter((t) => t.id !== taskId)); // remove from UI
+        setTasks(tasks.filter((t) => t.id !== taskId));
         alert("✅ Task completed!");
-
-        // Refresh user XP info after completion
         const encodedEmail = encodeURIComponent(session?.user?.email || "");
         const userRes = await fetch(`/api/users/${encodedEmail}`);
         if (userRes.ok) setUser(await userRes.json());
@@ -91,12 +95,45 @@ export default function UserDashboard() {
     }
   }
 
+  async function handleDeleteTask(taskId: number) {
+    if (!confirm("🗑 Are you sure you want to delete this task?")) return;
+  
+    try {
+      const res = await fetch(`/api/tasks/delete-only/${taskId}`, { method: "DELETE" });
+      if (res.ok) {
+        setTasks(tasks.filter((t) => t.id !== taskId));
+        alert("🗑 Task deleted successfully!");
+      } else {
+        const err = await res.json();
+        alert("❌ Failed to delete task: " + err.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Network error while deleting task.");
+    }
+  }
+  
+
   async function handleCreateTask() {
     try {
+      // Only include dueDate if it's actually provided and not empty
+      const payload: any = {
+        title: formData.title,
+        description: formData.description,
+        difficulty: formData.difficulty,
+        priority: formData.priority,
+      };
+
+      // Only add dueDate if it's a non-empty string
+      if (formData.dueDate && formData.dueDate.trim() !== '') {
+        payload.dueDate = formData.dueDate;
+      }
+
+      console.log('Sending payload:', payload);
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -232,20 +269,29 @@ export default function UserDashboard() {
                     <span>⚡ {task.xpReward} XP</span>
                     <span>📅 {task.priority}</span>
                     {task.dueDate && (
-                      <span>
-                        🕒 {new Date(task.dueDate).toLocaleDateString()}
-                      </span>
+                      <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>
                     )}
                   </div>
                 </div>
-                <Button
-                  onClick={() => handleCompleteTask(task.id)}
-                  className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
-                >
-                  <CheckCircle className="w-4 h-4" /> Done
-                </Button>
+
+                <div className="flex flex-col gap-2 min-w-[100px]">
+                  <Button
+                    onClick={() => handleCompleteTask(task.id)}
+                    className="bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 w-full"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Done
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2 w-full"
+                  >
+                    🗑 Delete
+                  </Button>
+                </div>
               </div>
             ))}
+
           </div>
         )}
       </section>
@@ -325,14 +371,15 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className="text-sm text-zinc-400">Due Date</label>
+              <label className="text-sm text-zinc-400">Due Date (optional - defaults to tomorrow)</label>
               <Input
                 type="date"
-                value={formData.dueDate}
+                value={formData.dueDate || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, dueDate: e.target.value })
+                  setFormData({ ...formData, dueDate: e.target.value || "" })
                 }
                 className="bg-zinc-800 border-zinc-700"
+                placeholder="Leave empty for tomorrow"
               />
             </div>
           </div>
