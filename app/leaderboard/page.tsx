@@ -60,7 +60,7 @@ export default function LeaderboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`flex items-center justify-between p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-lg ${
+                className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-lg gap-2 sm:gap-4 ${
                   index === 0
                     ? "border-yellow-500/50 shadow-yellow-500/20"
                     : index === 1
@@ -70,38 +70,38 @@ export default function LeaderboardPage() {
                     : ""
                 }`}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                   {/* 🥇 Rank Icon */}
-                  <div className="w-6 text-center text-zinc-400 font-bold">
+                  <div className="w-5 sm:w-6 text-center text-zinc-400 font-bold flex-shrink-0 text-sm sm:text-base">
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
 
                   {/* Profile */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <Image
                       src={user.image || "/default-avatar.png"}
                       alt={user.name}
                       width={40}
                       height={40}
-                      className="rounded-full border border-zinc-700"
+                      className="rounded-full border border-zinc-700 flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10"
                     />
-                    <div>
-                      <h2 className="text-lg font-semibold">{user.name}</h2>
-                      <p className="text-sm text-zinc-400">@{user.username}</p>
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-lg font-semibold truncate">{user.name}</h2>
+                      <p className="text-xs sm:text-sm text-zinc-400 truncate">@{user.username}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Stats */}
-                <div className="text-sm flex gap-6 text-zinc-300">
-                  <p className="flex items-center gap-1">
+                <div className="text-xs sm:text-sm flex gap-2 sm:gap-4 md:gap-6 text-zinc-300 flex-shrink-0">
+                  <p className="flex items-center gap-0.5 sm:gap-1 whitespace-nowrap">
                     ⭐ <span className="font-medium">{user.xp}</span>
                   </p>
-                  <p className="flex items-center gap-1">
-                    📋 {user.tasksCompleted || 0}
+                  <p className="flex items-center gap-0.5 sm:gap-1 whitespace-nowrap">
+                    📋 <span>{user.tasksCompleted || 0}</span>
                   </p>
-                  <p className="flex items-center gap-1">
-                    <Flame className="w-4 h-4 text-orange-500" />
+                  <p className="flex items-center gap-0.5 sm:gap-1 whitespace-nowrap">
+                    <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
                     {user.currentStreak}
                   </p>
                 </div>
