@@ -17,8 +17,17 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white flex flex-col items-center">
-
+<div
+  className="min-h-screen text-white flex flex-col items-center relative overflow-hidden"
+  style={{
+    backgroundImage: "url('/bg-shape.svg')",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  }}
+>
+  {/* <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-900/70 to-black/90" /> */}
+  
       {/* ========== HERO SECTION ========== */}
       <section className="flex flex-col items-center justify-center text-center py-20 max-w-2xl">
         <motion.h2
@@ -109,8 +118,8 @@ export default function LandingPage() {
 
       {/* ========== FOOTER ========== */}
       <footer className="border-t border-zinc-800 py-8 text-zinc-500 text-sm w-full text-center">
-        Made by <span className="text-orange-400">Ankit</span> &{" "}
-        <span className="text-orange-400">Rajanshu</span> — Keep the streak
+        Made by <span className="text-orange-400">Nishant</span> &{" "}
+        <span className="text-orange-400">Ankit</span> — Keep the streak
         alive 🔥
       </footer>
     </div>

@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function GET(req: Request) {
-  // 🔒 Check Authorization header (Vercel Cron sends this automatically)
   const authHeader = req.headers.get("Authorization");
   const cronSecret = process.env.CRON_SECRET;
-  
-  // Allow if CRON_SECRET is set and matches, or if it's not set (for local testing)
+
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     console.log("[Cron] Unauthorized - Invalid or missing CRON_SECRET");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,7 +12,7 @@ export async function GET(req: Request) {
 
   try {
     console.log("[Cron] Starting daily cleanup at midnight -", new Date().toISOString());
-    
+
     const users = await prisma.user.findMany({
       include: { tasks: true },
     });
@@ -24,33 +22,45 @@ export async function GET(req: Request) {
     let streakIncrements = 0;
     let streakResets = 0;
     let tasksDeleted = 0;
+    let totalXpDistributed = 0;
 
     for (const user of users) {
       const tasks = user.tasks;
-      
-      // Skip users with no tasks
-      if (tasks.length === 0) {
-        continue;
-      }
+      if (tasks.length === 0) continue;
 
       processedUsers++;
 
-      // Check for tasks whose deadline has exceeded (dueDate < now)
       const exceededTasks = tasks.filter(
         (t) => t.dueDate && new Date(t.dueDate) < now
       );
-
-      // Check for completed tasks
       const completedTasks = tasks.filter((t) => t.completed);
+
       const hasCompletedTask = completedTasks.length > 0;
       const hasExceededTask = exceededTasks.length > 0;
 
-      // Logic:
-      // If (any task deadline exceeded OR no tasks completed) → Reset streak to 0
-      // If (at least one task completed AND no tasks exceeded) → Increment streak by 1
-      
+      // ---- 🧠 XP CALCULATION ----
+      const earnedXp = completedTasks.reduce(
+        (sum, t) => sum + (t.xpReward || 0),
+        0
+      );
+
+      let newXp = user.xp;
+      let newLevel = user.level;
+
+      if (earnedXp > 0) {
+        newXp += earnedXp;
+        totalXpDistributed += earnedXp;
+
+        // Optional: Level-up logic (1 level per 100 XP, for example)
+        const levelThreshold = 100;
+        const extraLevels = Math.floor(newXp / levelThreshold) - Math.floor(user.xp / levelThreshold);
+        if (extraLevels > 0) {
+          newLevel += extraLevels;
+        }
+      }
+
+      // ---- 🔥 STREAK LOGIC ----
       if (hasExceededTask || !hasCompletedTask) {
-        // ❌ Reset streak: deadline exceeded OR no completed tasks
         await prisma.user.update({
           where: { id: user.id },
           data: { currentStreak: 0 },
@@ -58,51 +68,56 @@ export async function GET(req: Request) {
 
         streakResets++;
         console.log(
-          `[Cron] User ${user.email}: Streak reset to 0 (exceeded tasks: ${hasExceededTask}, completed tasks: ${completedTasks.length}/${tasks.length})`
+          `[Cron] ${user.email}: Streak reset (exceeded=${hasExceededTask}, completed=${completedTasks.length}/${tasks.length})`
         );
       } else if (hasCompletedTask && !hasExceededTask) {
-        // ✅ Increment streak: at least one completed AND no exceeded tasks
         const newStreak = user.currentStreak + 1;
-        const newLongestStreak = Math.max(newStreak, user.longestStreak);
+        const newLongest = Math.max(newStreak, user.longestStreak);
 
         await prisma.user.update({
           where: { id: user.id },
           data: {
             currentStreak: newStreak,
-            longestStreak: newLongestStreak,
+            longestStreak: newLongest,
+            xp: newXp,
+            level: newLevel,
           },
         });
 
         streakIncrements++;
         console.log(
-          `[Cron] User ${user.email}: Streak incremented to ${newStreak} (longest: ${newLongestStreak}) - ${completedTasks.length} task(s) completed`
+          `[Cron] ${user.email}: Streak ${newStreak}, XP +${earnedXp} → ${newXp}, Level ${newLevel}`
         );
+      } else {
+        // even if streak resets, still update XP if earned
+        if (earnedXp > 0) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { xp: newXp, level: newLevel },
+          });
+        }
       }
 
-      // Delete tasks that need cleanup:
-      // 1. All completed tasks (regardless of deadline)
-      // 2. All exceeded tasks that are not completed
-      const completedTaskIds = completedTasks.map(t => t.id);
-      const exceededIncompleteTaskIds = exceededTasks
-        .filter(t => !t.completed)
-        .map(t => t.id);
-      
-      // Combine all task IDs to delete (using Set to avoid duplicates)
-      const tasksToDelete = [...new Set([...completedTaskIds, ...exceededIncompleteTaskIds])];
-      
+      // ---- 🧹 TASK CLEANUP ----
+      const completedIds = completedTasks.map((t) => t.id);
+      const exceededIncompleteIds = exceededTasks
+        .filter((t) => !t.completed)
+        .map((t) => t.id);
+      const tasksToDelete = [...new Set([...completedIds, ...exceededIncompleteIds])];
+
       if (tasksToDelete.length > 0) {
-        const deleteResult = await prisma.task.deleteMany({
+        const result = await prisma.task.deleteMany({
           where: { id: { in: tasksToDelete } },
         });
-        tasksDeleted += deleteResult.count;
+        tasksDeleted += result.count;
         console.log(
-          `[Cron] User ${user.email}: Deleted ${deleteResult.count} task(s) (${completedTasks.length} completed, ${exceededIncompleteTaskIds.length} exceeded incomplete)`
+          `[Cron] ${user.email}: Deleted ${result.count} tasks (completed=${completedTasks.length}, exceeded=${exceededIncompleteIds.length})`
         );
       }
     }
 
     console.log(
-      `[Cron] Daily cleanup completed: ${processedUsers} users processed, ${streakIncrements} streaks incremented, ${streakResets} streaks reset, ${tasksDeleted} tasks deleted`
+      `[Cron] ✅ Cleanup done: ${processedUsers} users, ${streakIncrements} streak↑, ${streakResets} streak reset, ${tasksDeleted} tasks deleted, +${totalXpDistributed} XP distributed`
     );
 
     return NextResponse.json({
@@ -111,6 +126,7 @@ export async function GET(req: Request) {
       streakIncrements,
       streakResets,
       tasksDeleted,
+      totalXpDistributed,
       timestamp: now.toISOString(),
     });
   } catch (err) {

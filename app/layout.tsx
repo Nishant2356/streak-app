@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/ui/Navbar";
+import GlobalBackground from "@/components/ui/GlobalBackground";
 
 export const metadata: Metadata = {
   title: "Streak App",
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body className="bg-black text-white">
         <Providers>
           <Navbar />
+          <GlobalBackground />
           <main className="pt-20"> {/* Adds space below fixed navbar */}
             {children}
           </main>

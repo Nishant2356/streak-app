@@ -59,8 +59,8 @@ export default function HomePage() {
     return <p className="text-center mt-10 text-white">Loading...</p>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white px-6 py-10">
-      {/* Header */}
+<main className="px-4 sm:px-6 py-10">
+{/* Header */}
       <div className="text-center mb-10">
         <div className="flex justify-center items-center gap-2 mb-2">
           <Flame className="w-8 h-8 text-orange-500 animate-pulse" />

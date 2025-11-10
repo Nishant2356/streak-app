@@ -38,8 +38,8 @@ export default function LeaderboardPage() {
     return <p className="text-center text-white mt-10">Loading Leaderboard...</p>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white px-6 py-10">
-      <div className="text-center mb-10">
+<main className="px-4 sm:px-6 py-10">
+<div className="text-center mb-10">
         <div className="flex justify-center items-center gap-2 mb-2">
           <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
           <h1 className="text-3xl font-bold">Leaderboard</h1>
