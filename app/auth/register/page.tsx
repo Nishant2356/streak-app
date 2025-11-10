@@ -124,7 +124,9 @@ export default function RegisterPage() {
     });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white px-4">
+    // <main className="px-4 sm:px-6 py-10">
+
+    <main className="flex min-h-screen items-center justify-center px-4 sm:px-6 py-10">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
