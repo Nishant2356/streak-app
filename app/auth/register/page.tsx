@@ -150,7 +150,7 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-zinc-800 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="Ankit Pandey"
+              placeholder="John Doe"
             />
           </div>
 
@@ -162,7 +162,7 @@ export default function RegisterPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-zinc-800 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="ankit_123"
+              placeholder="John_123"
             />
           </div>
 
