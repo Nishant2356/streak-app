@@ -64,7 +64,7 @@ export default function HomePage() {
       <div className="text-center mb-10">
         <div className="flex justify-center items-center gap-2 mb-2">
           <Flame className="w-8 h-8 text-orange-500 animate-pulse" />
-          <h1 className="text-3xl font-bold">Team Activity Dashboard</h1>
+          <h1 className="text-3xl font-bold">Activity Dashboard</h1>
         </div>
         <p className="text-zinc-400 text-sm">
           Track everyone’s progress, XP, and assigned tasks 🔥
