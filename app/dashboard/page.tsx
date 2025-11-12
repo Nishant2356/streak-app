@@ -42,6 +42,15 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    action: "complete" | "delete" | null;
+    taskId: number | null;
+  }>({
+    open: false,
+    action: null,
+    taskId: null,
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -77,7 +86,6 @@ export default function UserDashboard() {
   }, [session]);
 
   async function handleCompleteTask(taskId: number) {
-    if (!confirm("✅ Are you sure you want to mark this task as completed?")) return;
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
@@ -115,7 +123,6 @@ export default function UserDashboard() {
   }
 
   async function handleDeleteTask(taskId: number) {
-    if (!confirm("🗑 Are you sure you want to delete this task?")) return;
 
     try {
       const res = await fetch(`/api/tasks/delete-only/${taskId}`, { method: "DELETE" });
@@ -141,6 +148,29 @@ export default function UserDashboard() {
         description: "Couldn’t delete task.",
         className: "bg-red-600 text-white border-none",
       });
+    }
+  }
+
+  function requestComplete(taskId: number) {
+    setConfirmState({ open: true, action: "complete", taskId });
+  }
+
+  function requestDelete(taskId: number) {
+    setConfirmState({ open: true, action: "delete", taskId });
+  }
+
+  async function handleConfirmAction() {
+    if (!confirmState.taskId || !confirmState.action) {
+      setConfirmState({ open: false, action: null, taskId: null });
+      return;
+    }
+    const id = confirmState.taskId;
+    const action = confirmState.action;
+    setConfirmState({ open: false, action: null, taskId: null });
+    if (action === "complete") {
+      await handleCompleteTask(id);
+    } else if (action === "delete") {
+      await handleDeleteTask(id);
     }
   }
 
@@ -171,7 +201,7 @@ export default function UserDashboard() {
           description: data.error,
           className: "bg-red-600 text-white border-none",
         });
-        alert(`${data.error}`)
+       // alert(`${data.error}`)
         return;
       }
 
@@ -181,7 +211,7 @@ export default function UserDashboard() {
           description: "New task assigned successfully!",
           className: "bg-orange-600 text-white border-none",
         });
-        alert(`✅ Task Created successfully`)
+       // alert(`✅ Task Created successfully`)
         setShowModal(false);
         setFormData({
           title: "",
@@ -329,13 +359,13 @@ export default function UserDashboard() {
                 {!task.completed && (
                   <div className="flex flex-col gap-2 min-w-[100px]">
                     <Button
-                      onClick={() => handleCompleteTask(task.id)}
+                      onClick={() => requestComplete(task.id)}
                       className="bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 w-full"
                     >
                       <CheckCircle className="w-4 h-4" /> Done
                     </Button>
                     <Button
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => requestDelete(task.id)}
                       className="bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2 w-full"
                     >
                       🗑 Delete
@@ -444,6 +474,30 @@ export default function UserDashboard() {
               className="bg-orange-500 hover:bg-orange-600 w-full"
             >
               Create Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Action Dialog */}
+      <Dialog open={confirmState.open} onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}>
+        <DialogContent className="bg-zinc-900 text-white border-zinc-800 max-w-sm w-full">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-center">
+              {confirmState.action === "delete" ? "🗑 Delete Task?" : "✅ Mark Task as Done?"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 text-center text-sm text-zinc-300">
+            {confirmState.action === "delete"
+              ? "This will permanently remove the task."
+              : "This will mark the task as completed and award XP."}
+          </div>
+          <DialogFooter className="mt-6 flex gap-2 sm:gap-3">
+            <Button
+              onClick={handleConfirmAction}
+              className={`${confirmState.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"} w-full`}
+            >
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
