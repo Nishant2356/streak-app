@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { validateTaskWithAI } from "@/lib/taskValidator";
 
 const XP_BY_DIFFICULTY = {
   EASY: 10,
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
     // Check if dueDate is provided and is a valid non-empty string
     let finalDueDate: Date;
     console.log('Received dueDate:', dueDate, 'Type:', typeof dueDate);
-    
+
     if (dueDate && typeof dueDate === 'string' && dueDate.trim() !== '') {
       try {
         // Parse the date string and set to midnight UTC
@@ -78,8 +79,18 @@ export async function POST(req: Request) {
       console.log('No date provided, using next midnight');
       finalDueDate = getNextMidnight();
     }
-    
+
     console.log('Final dueDate:', finalDueDate.toISOString());
+
+    const validation = await validateTaskWithAI(title, description, difficulty);
+
+    if (!validation || !validation.isRelevant) {
+      return NextResponse.json(
+        { error: `Task rejected: ${validation?.reason || "Invalid AI response"}` },
+        { status: 200 } // 👈 change to 200 so frontend can handle gracefully
+      );
+    }
+    
 
     const task = await prisma.task.create({
       data: {

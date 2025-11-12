@@ -29,10 +29,13 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";// ✅ added toast import
 
 export default function UserDashboard() {
+  
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { toast } = useToast(); // ✅ initialize toast
 
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -45,9 +48,8 @@ export default function UserDashboard() {
     description: "",
     difficulty: "EASY",
     priority: "MEDIUM",
-    dueDate: "", // Empty by default - API will set to tomorrow midnight
+    dueDate: "",
   });
-
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -56,13 +58,11 @@ export default function UserDashboard() {
   useEffect(() => {
     async function fetchData() {
       if (!session?.user?.email) return;
-
       setLoading(true);
       try {
         const encodedEmail = encodeURIComponent(session.user.email);
         const [userRes, taskRes] = await Promise.all([
           fetch(`/api/users/${encodedEmail}`),
-          // 🧹 Fetch tasks — expired ones auto-delete in backend
           fetch(`/api/tasks/user`),
         ]);
         if (userRes.ok) setUser(await userRes.json());
@@ -77,28 +77,40 @@ export default function UserDashboard() {
   }, [session]);
 
   async function handleCompleteTask(taskId: number) {
+    if (!confirm("✅ Are you sure you want to mark this task as completed?")) return;
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { 
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
       if (res.ok) {
-        // Update UI locally - mark task as completed
-        setTasks(prevTasks => 
-          prevTasks.map(t => t.id === taskId ? { ...t, completed: true } : t)
+        setTasks(prevTasks =>
+          prevTasks.map(t => (t.id === taskId ? { ...t, completed: true } : t))
         );
-        // Refresh user data to get updated XP/stats
         const encodedEmail = encodeURIComponent(session?.user?.email || "");
         const userRes = await fetch(`/api/users/${encodedEmail}`);
         if (userRes.ok) setUser(await userRes.json());
-        alert("✅ Task marked as completed!");
+
+        toast({
+          title: "Task Completed 🎉",
+          description: "You’ve earned XP and boosted your streak!",
+          className: "bg-green-600 text-white border-none",
+        });
       } else {
         const err = await res.json();
-        alert("❌ Failed to complete task: " + err.error);
+        toast({
+          title: "❌ Failed to Complete Task",
+          description: err.error || "Something went wrong.",
+          className: "bg-red-600 text-white border-none",
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("Network error while completing task.");
+      toast({
+        title: "Network Error",
+        description: "Couldn’t mark task as completed.",
+        className: "bg-red-600 text-white border-none",
+      });
     }
   }
 
@@ -109,21 +121,31 @@ export default function UserDashboard() {
       const res = await fetch(`/api/tasks/delete-only/${taskId}`, { method: "DELETE" });
       if (res.ok) {
         setTasks(tasks.filter((t) => t.id !== taskId));
-        alert("🗑 Task deleted successfully!");
+        toast({
+          title: "Task Deleted 🗑️",
+          description: "The task has been removed successfully.",
+          className: "bg-red-600 text-white border-none",
+        });
       } else {
         const err = await res.json();
-        alert("❌ Failed to delete task: " + err.error);
+        toast({
+          title: "❌ Failed to Delete Task",
+          description: err.error || "Something went wrong.",
+          className: "bg-red-600 text-white border-none",
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("Network error while deleting task.");
+      toast({
+        title: "Network Error",
+        description: "Couldn’t delete task.",
+        className: "bg-red-600 text-white border-none",
+      });
     }
   }
 
-
   async function handleCreateTask() {
     try {
-      // Only include dueDate if it's actually provided and not empty
       const payload: any = {
         title: formData.title,
         description: formData.description,
@@ -131,20 +153,35 @@ export default function UserDashboard() {
         priority: formData.priority,
       };
 
-      // Only add dueDate if it's a non-empty string
-      if (formData.dueDate && formData.dueDate.trim() !== '') {
+      if (formData.dueDate && formData.dueDate.trim() !== "") {
         payload.dueDate = formData.dueDate;
       }
 
-      console.log('Sending payload:', payload);
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const data = await res.json();
+      console.log(data)
+
+      if (data?.error) {
+        toast({
+          title: "❌ Task Validation Failed",
+          description: data.error,
+          className: "bg-red-600 text-white border-none",
+        });
+        alert(`${data.error}`)
+        return;
+      }
 
       if (res.ok) {
-        alert("✅ Task assigned successfully!");
+        toast({
+          title: "✅ Task Created",
+          description: "New task assigned successfully!",
+          className: "bg-orange-600 text-white border-none",
+        });
+        alert(`✅ Task Created successfully`)
         setShowModal(false);
         setFormData({
           title: "",
@@ -155,13 +192,14 @@ export default function UserDashboard() {
         });
         const updated = await fetch("/api/tasks/user");
         setTasks(await updated.json());
-      } else {
-        const err = await res.json();
-        alert("❌ Error: " + (err.error || "Failed to create task"));
       }
     } catch (error) {
-      alert("Network error while creating task.");
       console.error(error);
+      toast({
+        title: "Network Error",
+        description: "Couldn’t create task.",
+        className: "bg-red-600 text-white border-none",
+      });
     }
   }
 
@@ -180,8 +218,8 @@ export default function UserDashboard() {
     );
 
   return (
-<main className="px-4 sm:px-6 py-10">
-{/* Header */}
+    <main className="px-4 sm:px-6 py-10">
+      {/* Header */}
       <div className="text-center mb-10">
         <div className="flex justify-center items-center gap-2 mb-2">
           <Flame className="w-8 h-8 text-orange-500 animate-pulse" />
@@ -199,7 +237,6 @@ export default function UserDashboard() {
         transition={{ duration: 0.5 }}
         className="max-w-2xl mx-auto bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-orange-500/10"
       >
-        {/* Avatar and Info */}
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full border border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden">
             {user.image && !imageError ? (
@@ -221,7 +258,6 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
           <div className="bg-zinc-800/60 rounded-xl p-4">
             <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
@@ -240,7 +276,6 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Assign Task */}
         <div className="mt-6 text-center">
           <Button
             onClick={() => setShowModal(true)}
@@ -251,7 +286,6 @@ export default function UserDashboard() {
         </div>
       </motion.div>
 
-      {/* User Tasks */}
       <section className="max-w-3xl mx-auto mt-10">
         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
           <ClipboardList className="w-6 h-6 text-orange-400" /> Your Tasks
@@ -264,11 +298,16 @@ export default function UserDashboard() {
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className={`p-4 border rounded-xl flex justify-between items-center ${task.completed ? "bg-green-900 border-green-600 opacity-80" : "bg-zinc-900/60 border-zinc-800"
+                className={`p-4 border rounded-xl flex justify-between items-center ${task.completed
+                  ? "bg-green-900 border-green-600 opacity-80"
+                  : "bg-zinc-900/60 border-zinc-800"
                   }`}
               >
                 <div>
-                  <h3 className={`text-lg font-semibold ${task.completed ? "line-through text-green-400" : ""}`}>
+                  <h3
+                    className={`text-lg font-semibold ${task.completed ? "line-through text-green-400" : ""
+                      }`}
+                  >
                     {task.title}
                   </h3>
                   {task.description && (
@@ -278,8 +317,12 @@ export default function UserDashboard() {
                     <span>🎯 {task.difficulty}</span>
                     <span>⚡ {task.xpReward} XP</span>
                     <span>📅 {task.priority}</span>
-                    {task.dueDate && <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>}
-                    {task.completed && <span className="text-green-400 font-semibold">✅ Completed</span>}
+                    {task.dueDate && (
+                      <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>
+                    )}
+                    {task.completed && (
+                      <span className="text-green-400 font-semibold">✅ Completed</span>
+                    )}
                   </div>
                 </div>
 
@@ -301,7 +344,6 @@ export default function UserDashboard() {
                 )}
               </div>
             ))}
-
           </div>
         )}
       </section>
@@ -381,7 +423,9 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className="text-sm text-zinc-400">Due Date (optional - defaults to tomorrow)</label>
+              <label className="text-sm text-zinc-400">
+                Due Date (optional - defaults to tomorrow)
+              </label>
               <Input
                 type="date"
                 value={formData.dueDate || ""}
