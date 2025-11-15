@@ -10,24 +10,26 @@ export const metadata: Metadata = {
   description: "Build unstoppable consistency with daily challenges",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <meta name="theme-color" content="#ff7a18" />
+      </head>
+
       <body className="bg-black text-white">
         <Providers>
           <Navbar />
           <GlobalBackground />
-          <main className="pt-20"> {/* Adds space below fixed navbar */}
+          <main className="pt-20">
             {children}
           </main>
-          <Toaster /> 
+          <Toaster />
         </Providers>
       </body>
     </html>
   );
 }
+
 
