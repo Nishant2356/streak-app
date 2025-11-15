@@ -57,6 +57,7 @@ export default function UserDashboard() {
   const [generatedSchedule, setGeneratedSchedule] = useState("");
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [showScheduleDropdown, setShowScheduleDropdown] = useState(false);
+  const [timeUntilMidnight, setTimeUntilMidnight] = useState("");
 
 
   const [formData, setFormData] = useState({
@@ -66,6 +67,37 @@ export default function UserDashboard() {
     priority: "MEDIUM",
     dueDate: "",
   });
+
+  useEffect(() => {
+    function updateCountdown() {
+      const nowUTC = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const nowIST = new Date(nowUTC.getTime() + istOffset);
+      
+      // Get today's midnight (end of day) in IST
+      const midnightTonight = new Date(nowIST);
+      midnightTonight.setUTCHours(23, 59, 59, 999); // Set to end of today in IST
+      
+      const diff = midnightTonight.getTime() - nowIST.getTime();
+      
+      // If diff is negative, we've passed midnight
+      if (diff < 0) {
+        setTimeUntilMidnight("0h 0m 0s");
+        return;
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTimeUntilMidnight(`${hours}h ${minutes}m ${seconds}s`);
+    }
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const todayTasks = tasks.filter(t => {
     if (!t.dueDate) return false;
@@ -392,6 +424,21 @@ export default function UserDashboard() {
           </div>
         </div>
 
+                {/* Compact Countdown */}
+        <div className="mt-4 bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-700/50 rounded-xl p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm text-zinc-400">Until Midnight:</span>
+            </div>
+            <span className="text-lg font-bold text-orange-400 font-mono">
+              {timeUntilMidnight || "..."}
+            </span>
+          </div>
+        </div>
+
         <div className="mt-6 text-center">
           <Button
             onClick={() => setShowModal(true)}
@@ -408,7 +455,7 @@ export default function UserDashboard() {
 
         </div>
       </motion.div>
-
+      
       {/* Generated Schedule Display - Collapsible */}
       {generatedSchedule && (
         <motion.div
