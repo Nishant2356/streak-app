@@ -32,7 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";// ✅ added toast import
 
 export default function UserDashboard() {
-  
+
   const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast(); // ✅ initialize toast
@@ -52,6 +52,13 @@ export default function UserDashboard() {
     taskId: null,
   });
 
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [schedulePrompt, setSchedulePrompt] = useState("");
+  const [generatedSchedule, setGeneratedSchedule] = useState("");
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [showScheduleDropdown, setShowScheduleDropdown] = useState(false);
+
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -59,6 +66,65 @@ export default function UserDashboard() {
     priority: "MEDIUM",
     dueDate: "",
   });
+
+  const todayTasks = tasks.filter(t => {
+    if (!t.dueDate) return false;
+    
+    // Extract just the date portion (YYYY-MM-DD) from the task
+    const taskDateStr = new Date(t.dueDate).toISOString().split('T')[0];
+    
+    // Get today's date in IST and extract date portion
+    const nowUTC = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(nowUTC.getTime() + istOffset);
+    const todayDateStr = todayIST.toISOString().split('T')[0];
+    
+    return taskDateStr === todayDateStr;
+  });
+
+  async function generateSchedule() {
+    console.log(todayTasks);
+    setLoadingSchedule(true);
+
+    try {
+      const currentTime = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasks: todayTasks,
+          currentTime,
+          prompt: schedulePrompt,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setGeneratedSchedule(data.schedule);
+        toast({
+          title: "Schedule Ready!",
+          description: "Here is your perfect plan for today.",
+          className: "bg-blue-600 text-white border-none"
+        });
+        setShowScheduleModal(false);
+      } else {
+        toast({
+          title: "Failed to generate",
+          description: data.error || "Something went wrong.",
+          className: "bg-red-600 text-white border-none"
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  }
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -83,6 +149,27 @@ export default function UserDashboard() {
       }
     }
     fetchData();
+  }, [session]);
+
+  useEffect(() => {
+    async function fetchTodaySchedule() {
+      if (!session?.user?.email) return;
+
+      try {
+        const res = await fetch('/api/schedule');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.schedules && data.schedules.length > 0) {
+            // Set the most recent schedule
+            setGeneratedSchedule(data.schedules[0].content);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch schedule:', err);
+      }
+    }
+
+    fetchTodaySchedule();
   }, [session]);
 
   async function handleCompleteTask(taskId: number) {
@@ -201,7 +288,6 @@ export default function UserDashboard() {
           description: data.error,
           className: "bg-red-600 text-white border-none",
         });
-       // alert(`${data.error}`)
         return;
       }
 
@@ -211,7 +297,7 @@ export default function UserDashboard() {
           description: "New task assigned successfully!",
           className: "bg-orange-600 text-white border-none",
         });
-       // alert(`✅ Task Created successfully`)
+        // alert(`✅ Task Created successfully`)
         setShowModal(false);
         setFormData({
           title: "",
@@ -313,8 +399,68 @@ export default function UserDashboard() {
           >
             <PlusCircle className="w-5 h-5" /> Assign Task
           </Button>
+          <Button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md flex items-center gap-2 mx-auto mt-4"
+          >
+            📅 Generate Schedule
+          </Button>
+
         </div>
       </motion.div>
+
+      {/* Generated Schedule Display - Collapsible */}
+      {generatedSchedule && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="max-w-3xl mx-auto mt-8 bg-blue-900/20 border border-blue-700/50 rounded-2xl overflow-hidden"
+        >
+          <button
+            onClick={() => setShowScheduleDropdown(!showScheduleDropdown)}
+            className="w-full p-6 flex items-center justify-between hover:bg-blue-900/30 transition-colors"
+          >
+            <h2 className="text-2xl font-semibold flex items-center gap-2 text-blue-400">
+              📅 Today's Schedule
+            </h2>
+            <motion.div
+              animate={{ rotate: showScheduleDropdown ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <svg
+                className="w-6 h-6 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </motion.div>
+          </button>
+
+          {showScheduleDropdown && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="px-6 pb-6"
+            >
+              <div className="prose prose-invert max-w-none">
+                <pre className="whitespace-pre-wrap text-sm text-zinc-200 bg-zinc-800/50 p-4 rounded-lg">
+                  {generatedSchedule}
+                </pre>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
 
       <section className="max-w-3xl mx-auto mt-10">
         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
@@ -348,7 +494,7 @@ export default function UserDashboard() {
                     <span>⚡ {task.xpReward} XP</span>
                     <span>📅 {task.priority}</span>
                     {task.dueDate && (
-                      <span>🕒 {new Date(task.dueDate).toLocaleDateString()}</span>
+                      <span>🕒 {new Date(task.dueDate).toISOString().split('T')[0]}</span>
                     )}
                     {task.completed && (
                       <span className="text-green-400 font-semibold">✅ Completed</span>
@@ -478,6 +624,47 @@ export default function UserDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Schedule Modal */}
+      <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+        <DialogContent className="bg-zinc-900 text-white border-zinc-800 max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-center">
+              📅 Create Today's Schedule
+            </DialogTitle>
+          </DialogHeader>
+
+          {todayTasks.length === 0 ? (
+            <p className="text-center text-zinc-400">
+              No tasks are due today.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-zinc-400 mb-3">
+                Optional instructions (e.g., “Give more time to coding tasks”)
+              </p>
+
+              <Textarea
+                className="bg-zinc-800 border-zinc-700"
+                placeholder="Write extra instructions (optional)"
+                value={schedulePrompt}
+                onChange={e => setSchedulePrompt(e.target.value)}
+              />
+
+              <DialogFooter className="mt-4">
+                <Button
+                  onClick={generateSchedule}
+                  className="bg-blue-600 hover:bg-blue-700 w-full"
+                  disabled={loadingSchedule}
+                >
+                  {loadingSchedule ? "Generating..." : "Generate Schedule"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       {/* Confirm Action Dialog */}
       <Dialog open={confirmState.open} onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}>

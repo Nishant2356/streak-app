@@ -13,11 +13,15 @@ export async function GET(req: Request) {
   try {
     console.log("[Cron] Starting daily cleanup at midnight -", new Date().toISOString());
 
+    // Get current time in IST
+    const nowUTC = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes
+    const nowIST = new Date(nowUTC.getTime() + istOffset);
+
     const users = await prisma.user.findMany({
       include: { tasks: true },
     });
 
-    const now = new Date();
     let processedUsers = 0;
     let streakIncrements = 0;
     let streakResets = 0;
@@ -30,9 +34,18 @@ export async function GET(req: Request) {
 
       processedUsers++;
 
-      const exceededTasks = tasks.filter(
-        (t) => t.dueDate && new Date(t.dueDate) < now
-      );
+      // Filter expired tasks using IST timezone
+      const exceededTasks = tasks.filter((t) => {
+        if (!t.dueDate) return false;
+        
+        // Convert task due date to IST
+        const taskDueDateUTC = new Date(t.dueDate);
+        const taskDueDateIST = new Date(taskDueDateUTC.getTime() + istOffset);
+        
+        // Check if task is expired in IST
+        return taskDueDateIST < nowIST;
+      });
+
       const completedTasks = tasks.filter((t) => t.completed);
 
       const hasCompletedTask = completedTasks.length > 0;
@@ -117,7 +130,7 @@ export async function GET(req: Request) {
     }
 
     console.log(
-      `[Cron] ✅ Cleanup done: ${processedUsers} users, ${streakIncrements} streak↑, ${streakResets} streak reset, ${tasksDeleted} tasks deleted, +${totalXpDistributed} XP distributed`
+      `[Cron] ✅ Cleanup done: ${processedUsers} users, ${streakIncrements} streak↑, ${streakResets} streak reset, ${tasksDeleted} tasks deleted, +${totalXpDistributed} XP distributed (IST: ${nowIST.toISOString()})`
     );
 
     return NextResponse.json({
@@ -127,7 +140,8 @@ export async function GET(req: Request) {
       streakResets,
       tasksDeleted,
       totalXpDistributed,
-      timestamp: now.toISOString(),
+      timestamp: nowUTC.toISOString(),
+      timestampIST: nowIST.toISOString(),
     });
   } catch (err) {
     console.error("[Cron] Error in daily cleanup:", err);

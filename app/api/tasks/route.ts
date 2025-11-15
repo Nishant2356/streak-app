@@ -36,12 +36,17 @@ export async function POST(req: Request) {
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // 🕛 Get next midnight (tomorrow at 00:00:00 UTC) as default
-    const getNextMidnight = () => {
-      const tomorrow = new Date();
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-      tomorrow.setUTCHours(0, 0, 0, 0);
-      return tomorrow;
+    // 📅 Get current day at end of day in IST (India Standard Time, UTC+5:30)
+    const getCurrentDayEndOfDay = () => {
+      // Get current time in IST
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+      const istTime = new Date(now.getTime() + istOffset);
+      
+      // Set to end of day in IST
+      istTime.setUTCHours(23, 59, 59, 999);
+      
+      return istTime;
     };
 
     // Helper to parse date string and set to midnight (00:00:00 UTC)
@@ -61,29 +66,29 @@ export async function POST(req: Request) {
       try {
         // Parse the date string and set to midnight UTC
         finalDueDate = parseDateToMidnight(dueDate.trim());
+        
         // Validate the parsed date
         if (isNaN(finalDueDate.getTime())) {
-          // Invalid date, use next midnight
-          console.log('Invalid date, using next midnight');
-          finalDueDate = getNextMidnight();
+          // Invalid date, use current day end of day
+          console.log('Invalid date, using current day end of day');
+          finalDueDate = getCurrentDayEndOfDay();
         } else {
           console.log('Parsed date:', finalDueDate.toISOString());
         }
       } catch (error) {
-        // Error parsing date, use next midnight
-        console.log('Error parsing date, using next midnight:', error);
-        finalDueDate = getNextMidnight();
+        // Error parsing date, use current day end of day
+        console.log('Error parsing date, using current day end of day:', error);
+        finalDueDate = getCurrentDayEndOfDay();
       }
     } else {
-      // No date provided, use next midnight
-      console.log('No date provided, using next midnight');
-      finalDueDate = getNextMidnight();
+      // No date provided, use current day end of day
+      console.log('No date provided, using current day end of day');
+      finalDueDate = getCurrentDayEndOfDay();
     }
 
     console.log('Final dueDate:', finalDueDate.toISOString());
 
     const validation = await validateTaskWithAI(title, description, difficulty);
-
     if (!validation || !validation.isRelevant) {
       return NextResponse.json(
         { error: `Task rejected: ${validation?.reason || "Invalid AI response"}` },
@@ -91,7 +96,6 @@ export async function POST(req: Request) {
       );
     }
     
-
     const task = await prisma.task.create({
       data: {
         title,
