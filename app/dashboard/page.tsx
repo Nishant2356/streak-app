@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Pencil, Upload } from "lucide-react";
 import {
   Flame,
   Star,
@@ -29,13 +30,13 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";// ✅ added toast import
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserDashboard() {
 
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { toast } = useToast(); // ✅ initialize toast
+  const { toast } = useToast();
 
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -59,7 +60,6 @@ export default function UserDashboard() {
   const [showScheduleDropdown, setShowScheduleDropdown] = useState(false);
   const [timeUntilMidnight, setTimeUntilMidnight] = useState("");
 
-
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -68,49 +68,57 @@ export default function UserDashboard() {
     dueDate: "",
   });
 
+  const [showEditProfile, setShowEditProfile] = useState(false);
+
+  const [editData, setEditData] = useState({
+    name: "",
+    username: "",
+    email: "",
+    image: "",
+  });
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+
   useEffect(() => {
     function updateCountdown() {
       const nowUTC = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
       const nowIST = new Date(nowUTC.getTime() + istOffset);
-      
-      // Get today's midnight (end of day) in IST
+
       const midnightTonight = new Date(nowIST);
-      midnightTonight.setUTCHours(23, 59, 59, 999); // Set to end of today in IST
-      
+      midnightTonight.setUTCHours(23, 59, 59, 999);
+
       const diff = midnightTonight.getTime() - nowIST.getTime();
-      
-      // If diff is negative, we've passed midnight
+
       if (diff < 0) {
         setTimeUntilMidnight("0h 0m 0s");
         return;
       }
-      
+
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
+
       setTimeUntilMidnight(`${hours}h ${minutes}m ${seconds}s`);
     }
-    
+
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
   const todayTasks = tasks.filter(t => {
     if (!t.dueDate) return false;
-    
-    // Extract just the date portion (YYYY-MM-DD) from the task
+
     const taskDateStr = new Date(t.dueDate).toISOString().split('T')[0];
-    
-    // Get today's date in IST and extract date portion
+
     const nowUTC = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const todayIST = new Date(nowUTC.getTime() + istOffset);
     const todayDateStr = todayIST.toISOString().split('T')[0];
-    
+
     return taskDateStr === todayDateStr;
   });
 
@@ -192,7 +200,6 @@ export default function UserDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.schedules && data.schedules.length > 0) {
-            // Set the most recent schedule
             setGeneratedSchedule(data.schedules[0].content);
           }
         }
@@ -220,7 +227,7 @@ export default function UserDashboard() {
 
         toast({
           title: "Task Completed 🎉",
-          description: "You’ve earned XP and boosted your streak!",
+          description: "You've earned XP and boosted your streak!",
           className: "bg-green-600 text-white border-none",
         });
       } else {
@@ -235,14 +242,13 @@ export default function UserDashboard() {
       console.error(error);
       toast({
         title: "Network Error",
-        description: "Couldn’t mark task as completed.",
+        description: "Couldn't mark task as completed.",
         className: "bg-red-600 text-white border-none",
       });
     }
   }
 
   async function handleDeleteTask(taskId: number) {
-
     try {
       const res = await fetch(`/api/tasks/delete-only/${taskId}`, { method: "DELETE" });
       if (res.ok) {
@@ -264,7 +270,7 @@ export default function UserDashboard() {
       console.error(error);
       toast({
         title: "Network Error",
-        description: "Couldn’t delete task.",
+        description: "Couldn't delete task.",
         className: "bg-red-600 text-white border-none",
       });
     }
@@ -290,6 +296,122 @@ export default function UserDashboard() {
       await handleCompleteTask(id);
     } else if (action === "delete") {
       await handleDeleteTask(id);
+    }
+  }
+
+  function openEditProfile() {
+    setEditData({
+      name: user.name || "",
+      username: user.username || "",
+      email: user.email || "",
+      image: user.image || "",
+    });
+    setImagePreview(user.image || "");
+    setShowEditProfile(true);
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file.",
+        className: "bg-red-600 text-white border-none",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image under 5MB.",
+        className: "bg-red-600 text-white border-none",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "frontend_signup"); // Replace with your Cloudinary upload preset
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/dujwwjdkq/image/upload`, // Replace with your cloud name
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setEditData({ ...editData, image: data.secure_url });
+        setImagePreview(data.secure_url);
+        toast({
+          title: "Image Uploaded ✅",
+          description: "Profile picture uploaded successfully.",
+          className: "bg-green-600 text-white border-none",
+        });
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "Could not upload image.",
+          className: "bg-red-600 text-white border-none",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Upload Error",
+        description: "An error occurred during upload.",
+        className: "bg-red-600 text-white border-none",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function handleUpdateProfile() {
+    try {
+      const res = await fetch("/api/users/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData),
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        toast({
+          title: "Update Failed ❌",
+          description: data.error || "Something went wrong.",
+          className: "bg-red-600 text-white border-none",
+        });
+        return;
+      }
+  
+      toast({
+        title: "Profile Updated 🎉",
+        description: "Your information has been saved.",
+        className: "bg-green-600 text-white border-none",
+      });
+  
+      // Refresh user data
+      const encodedEmail = encodeURIComponent(session?.user?.email || "");
+      const userRes = await fetch(`/api/users/${encodedEmail}`);
+      if (userRes.ok) setUser(await userRes.json());
+  
+      setShowEditProfile(false);
+  
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -329,7 +451,6 @@ export default function UserDashboard() {
           description: "New task assigned successfully!",
           className: "bg-orange-600 text-white border-none",
         });
-        // alert(`✅ Task Created successfully`)
         setShowModal(false);
         setFormData({
           title: "",
@@ -345,7 +466,7 @@ export default function UserDashboard() {
       console.error(error);
       toast({
         title: "Network Error",
-        description: "Couldn’t create task.",
+        description: "Couldn't create task.",
         className: "bg-red-600 text-white border-none",
       });
     }
@@ -385,7 +506,7 @@ export default function UserDashboard() {
         transition={{ duration: 0.5 }}
         className="max-w-2xl mx-auto bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-orange-500/10"
       >
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 relative">
           <div className="w-16 h-16 rounded-full border border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden">
             {user.image && !imageError ? (
               <img
@@ -400,8 +521,17 @@ export default function UserDashboard() {
               </div>
             )}
           </div>
+
           <div>
-            <h2 className="text-2xl font-semibold">{user.name}</h2>
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              {user.name}
+              <button
+                onClick={() => openEditProfile()}
+                className="text-zinc-400 hover:text-orange-400"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
+            </h2>
             <p className="text-zinc-400 text-sm">{user.email}</p>
           </div>
         </div>
@@ -424,7 +554,6 @@ export default function UserDashboard() {
           </div>
         </div>
 
-                {/* Compact Countdown */}
         <div className="mt-4 bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-700/50 rounded-xl p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -452,11 +581,10 @@ export default function UserDashboard() {
           >
             📅 Generate Schedule
           </Button>
-
         </div>
       </motion.div>
-      
-      {/* Generated Schedule Display - Collapsible */}
+
+      {/* Generated Schedule Display */}
       {generatedSchedule && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -688,7 +816,7 @@ export default function UserDashboard() {
           ) : (
             <>
               <p className="text-sm text-zinc-400 mb-3">
-                Optional instructions (e.g., “Give more time to coding tasks”)
+                Optional instructions (e.g., "Give more time to coding tasks")
               </p>
 
               <Textarea
@@ -712,7 +840,6 @@ export default function UserDashboard() {
         </DialogContent>
       </Dialog>
 
-
       {/* Confirm Action Dialog */}
       <Dialog open={confirmState.open} onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}>
         <DialogContent className="bg-zinc-900 text-white border-zinc-800 max-w-sm w-full">
@@ -732,6 +859,122 @@ export default function UserDashboard() {
               className={`${confirmState.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"} w-full`}
             >
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent className="bg-zinc-900 border border-zinc-700 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Edit Profile</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5 mt-4">
+            {/* Profile Image Upload */}
+            <div>
+              <label className="text-sm text-zinc-400 mb-2 block">Profile Picture</label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full border-2 border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden">
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-orange-500 text-2xl font-bold">
+                      {(editData.name || "U")[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg border border-zinc-700 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {uploadingImage ? "Uploading..." : "Upload Photo"}
+                  </label>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploadingImage}
+                  />
+                  <p className="text-xs text-zinc-500 mt-2">
+                    JPG, PNG or GIF (max 5MB)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Or manual URL input */}
+            <div>
+              <label className="text-sm text-zinc-400">Or paste image URL</label>
+              <Input
+                value={editData.image}
+                onChange={(e) => {
+                  setEditData({ ...editData, image: e.target.value });
+                  setImagePreview(e.target.value);
+                }}
+                placeholder="https://example.com/image.jpg"
+                className="bg-zinc-800 border-zinc-700 mt-1"
+              />
+            </div>
+
+            {/* Full Name */}
+            <div>
+              <label className="text-sm text-zinc-400">Full Name</label>
+              <Input
+                value={editData.name}
+                onChange={(e) =>
+                  setEditData({ ...editData, name: e.target.value })
+                }
+                className="bg-zinc-800 border-zinc-700 mt-1"
+              />
+            </div>
+
+            {/* Username */}
+            <div>
+              <label className="text-sm text-zinc-400">Username</label>
+              <Input
+                value={editData.username}
+                onChange={(e) =>
+                  setEditData({ ...editData, username: e.target.value })
+                }
+                className="bg-zinc-800 border-zinc-700 mt-1"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-sm text-zinc-400">Email</label>
+              <Input
+                type="email"
+                value={editData.email}
+                onChange={(e) =>
+                  setEditData({ ...editData, email: e.target.value })
+                }
+                className="bg-zinc-800 border-zinc-700 mt-1"
+              />
+            </div>
+
+            <p className="text-xs text-zinc-500">
+              Password cannot be changed from here.
+            </p>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button
+              onClick={handleUpdateProfile}
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full"
+              disabled={uploadingImage}
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
