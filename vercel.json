@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/daily-cleanup",
-      "schedule": "36 00 * * *"
+      "schedule": "45 00 * * *"
     }
   ]
 }
