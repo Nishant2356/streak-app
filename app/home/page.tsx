@@ -89,11 +89,37 @@ export default function HomePage() {
               <Card>
                 {/* Profile Header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src={user.image || "/default-avatar.png"}
-                    alt={user.name}
-                    className="w-12 h-12 rounded-full object-cover border border-orange-500/30"
-                  />
+                  <div className="relative w-12 h-12">
+                    {/* Avatar */}
+                    <img
+                      src={user.image || "/default-avatar.png"}
+                      alt={user.name}
+                      className="w-full h-full rounded-full object-cover border border-orange-500/30 relative z-20"
+                    />
+
+                    {/* HEADGEAR */}
+                    {(() => {
+                      const headgear = user.equipped?.find((e: any) => e.type === "HEADGEAR");
+                      if (!headgear) return null;
+
+                      const item = headgear.item;
+
+                      return (
+                        <img
+                          src={item.image}
+                          alt="headgear"
+                          className="absolute pointer-events-none z-30"
+                          style={{
+                            width:
+                              (item.smallWidth ?? item.width ?? 50) *
+                              0.8, // Slightly reduced for card size
+                            top: -30,
+                            left: -2,
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
                   <div>
                     <h2 className="text-lg font-semibold">{user.name}</h2>
                     <p className="text-sm text-zinc-400">@{user.username}</p>
@@ -136,11 +162,10 @@ export default function HomePage() {
                             <div className="flex justify-between items-center mb-1">
                               <span className="font-medium">{task.title}</span>
                               <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  task.completed
+                                className={`text-xs px-2 py-0.5 rounded-full ${task.completed
                                     ? "bg-green-500/20 text-green-400"
                                     : "bg-yellow-500/20 text-yellow-400"
-                                }`}
+                                  }`}
                               >
                                 {task.completed ? "Done" : "Pending"}
                               </span>

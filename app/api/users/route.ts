@@ -15,6 +15,9 @@ export async function GET() {
             completed: true,
           },
         },
+        equipped: {
+          include: { item: true }
+        }        
       },
     });
     return NextResponse.json(users);

@@ -20,6 +20,15 @@ enum Difficulty {
   HARD
 }
 
+enum ItemType {
+  HEADGEAR     // Crowns, hats, halos
+  FRAME        // Avatar frames
+  BACKGROUND   // Avatar backgrounds
+  AURA         // Glowing effects
+  BOOST        // XP boosters
+}
+
+
 enum Priority {
   HIGH     // Must do
   MEDIUM   // Should do
@@ -45,9 +54,10 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Relation — one user can have many tasks
   tasks           Task[]
   schedules       Schedule[]
+  inventory       UserItem[]
+  equipped        UserEquip[]   // <-- only 1 relation now
 }
 
 model Task {
@@ -82,3 +92,56 @@ model Schedule {
   
   @@index([userId, date])
 }
+
+model StoreItem {
+  id        Int       @id @default(autoincrement())
+  name      String
+  type      ItemType
+  price     Int       @default(0)
+  image     String
+  width     Int?
+  offsetX   Int?
+  offsetY   Int?
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ownedBy   UserItem[]
+
+  // ❌ REMOVE old equipped relations 
+  // Equipped items now stored in UserEquip model
+
+  userEquipped UserEquip[]   // <-- NEW correct relation
+}
+
+model UserItem {
+  id        Int        @id @default(autoincrement())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  item      StoreItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    Int
+
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, itemId])
+}
+
+model UserEquip {
+  id        Int        @id @default(autoincrement())
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  
+  item      StoreItem  @relation(fields: [itemId], references: [id])
+  itemId    Int
+
+  type      ItemType   // HEADGEAR / FRAME / BACKGROUND / AURA / BOOST...
+
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, type])   // user can equip 1 item per category
+}
+
+

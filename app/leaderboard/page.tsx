@@ -38,8 +38,8 @@ export default function LeaderboardPage() {
     return <p className="text-center text-white mt-10">Loading Leaderboard...</p>;
 
   return (
-<main className="px-4 sm:px-6 py-10">
-<div className="text-center mb-10">
+    <main className="px-4 sm:px-6 py-10">
+      <div className="text-center mb-10">
         <div className="flex justify-center items-center gap-2 mb-2">
           <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
           <h1 className="text-3xl font-bold">Leaderboard</h1>
@@ -60,15 +60,14 @@ export default function LeaderboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-lg gap-2 sm:gap-4 ${
-                  index === 0
+                className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-lg gap-2 sm:gap-4 ${index === 0
                     ? "border-yellow-500/50 shadow-yellow-500/20"
                     : index === 1
-                    ? "border-gray-400/40 shadow-gray-400/10"
-                    : index === 2
-                    ? "border-orange-400/40 shadow-orange-400/10"
-                    : ""
-                }`}
+                      ? "border-gray-400/40 shadow-gray-400/10"
+                      : index === 2
+                        ? "border-orange-400/40 shadow-orange-400/10"
+                        : ""
+                  }`}
               >
                 <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                   {/* 🥇 Rank Icon */}
@@ -78,13 +77,40 @@ export default function LeaderboardPage() {
 
                   {/* Profile */}
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Image
-                      src={user.image || "/default-avatar.png"}
-                      alt={user.name}
-                      width={40}
-                      height={40}
-                      className="rounded-full border border-zinc-700 flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10"
-                    />
+                    <div className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10">
+                      {/* Avatar */}
+                      <Image
+                        src={user.image || "/default-avatar.png"}
+                        alt={user.name}
+                        width={40}
+                        height={40}
+                        className="rounded-full border border-zinc-700 w-full h-full object-cover"
+                        style={{ zIndex: 10 }}
+                      />
+
+                      {/* HEADGEAR OVERLAY */}
+                      {(() => {
+                        const headgear = user.equipped?.find((e: any) => e.type === "HEADGEAR");
+                        if (!headgear) return null;
+
+                        const item = headgear.item;
+                        console.log("Headgear item for", user.username, ":", item);
+
+                        return (
+                          <img
+                            src={item.image}
+                            alt="headgear"
+                            className="absolute pointer-events-none"
+                            style={{
+                              zIndex: 12,
+                              width: (item.smallWidth ?? item.width ?? 50) * 1,   // shrink for leaderboard
+                              top: item.smallOffsetY  ?? -25,
+                              left: item.smallOffsetX ?? -2,
+                            }}
+                          />
+                        );
+                      })()}
+                    </div>
                     <div className="min-w-0">
                       <h2 className="text-sm sm:text-lg font-semibold truncate">{user.name}</h2>
                       <p className="text-xs sm:text-sm text-zinc-400 truncate">@{user.username}</p>

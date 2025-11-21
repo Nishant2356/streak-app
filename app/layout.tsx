@@ -6,7 +6,7 @@ import GlobalBackground from "@/components/ui/GlobalBackground";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "Streak App",
+  title: "Arise",
   description: "Build unstoppable consistency with daily challenges",
 };
 

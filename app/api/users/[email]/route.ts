@@ -26,7 +26,11 @@ export async function GET(
         lastCompletedAt: true,
         createdAt: true,
         updatedAt: true,
-        // Don't return password
+        equipped: {
+          include: {
+            item: true,
+          },
+        },  
       },
     });
 

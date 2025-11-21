@@ -34,9 +34,8 @@ export default function Navbar() {
     <>
       <Link
         href="/home"
-        className={`hover:text-orange-400 transition-colors ${
-          pathname === "/home" ? "text-orange-400" : ""
-        } ${isMobile ? "block py-3 text-base" : ""}`}
+        className={`hover:text-orange-400 transition-colors ${pathname === "/home" ? "text-orange-400" : ""
+          } ${isMobile ? "block py-3 text-base" : ""}`}
         onClick={() => isMobile && setIsMobileMenuOpen(false)}
       >
         Home
@@ -46,27 +45,24 @@ export default function Navbar() {
         <>
           <Link
             href="#features"
-            className={`hover:text-orange-400 transition-colors ${
-              isMobile ? "block py-3 text-base" : "hidden md:inline"
-            }`}
+            className={`hover:text-orange-400 transition-colors ${isMobile ? "block py-3 text-base" : "hidden md:inline"
+              }`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Features
           </Link>
           <Link
             href="#preview"
-            className={`hover:text-orange-400 transition-colors ${
-              isMobile ? "block py-3 text-base" : "hidden md:inline"
-            }`}
+            className={`hover:text-orange-400 transition-colors ${isMobile ? "block py-3 text-base" : "hidden md:inline"
+              }`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Preview
           </Link>
           <Link
             href="#join"
-            className={`hover:text-orange-400 transition-colors ${
-              isMobile ? "block py-3 text-base" : "hidden md:inline"
-            }`}
+            className={`hover:text-orange-400 transition-colors ${isMobile ? "block py-3 text-base" : "hidden md:inline"
+              }`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Join
@@ -80,9 +76,8 @@ export default function Navbar() {
         <>
           <Link
             href="/dashboard"
-            className={`hover:text-orange-400 transition-colors ${
-              pathname === "/dashboard" ? "text-orange-400" : ""
-            } ${isMobile ? "block py-3 text-base" : ""}`}
+            className={`hover:text-orange-400 transition-colors ${pathname === "/dashboard" ? "text-orange-400" : ""
+              } ${isMobile ? "block py-3 text-base" : ""}`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Dashboard
@@ -90,20 +85,27 @@ export default function Navbar() {
 
           <Link
             href="/leaderboard"
-            className={`hover:text-orange-400 transition-colors ${
-              pathname === "/leaderboard" ? "text-orange-400" : ""
-            } ${isMobile ? "block py-3 text-base" : ""}`}
+            className={`hover:text-orange-400 transition-colors ${pathname === "/leaderboard" ? "text-orange-400" : ""
+              } ${isMobile ? "block py-3 text-base" : ""}`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Leaderboard
           </Link>
 
+          <Link
+            href="/store"
+            className={`hover:text-orange-400 transition-colors ${pathname === "/store" ? "text-orange-400" : ""
+              } ${isMobile ? "block py-3 text-base" : ""}`}
+            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+          >
+            Store
+          </Link>
+
           <Button
             onClick={handleSignOut}
             variant="destructive"
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all bg-red-500 hover:bg-red-600 text-white font-medium ${
-              isMobile ? "w-full mt-2 justify-center" : ""
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all bg-red-500 hover:bg-red-600 text-white font-medium ${isMobile ? "w-full mt-2 justify-center" : ""
+              }`}
           >
             <LogOut size={18} />
             Sign Out
@@ -113,20 +115,18 @@ export default function Navbar() {
         <>
           <Link
             href="/auth/login"
-            className={`hover:text-orange-400 transition-colors ${
-              isMobile ? "block py-3 text-base" : ""
-            }`}
+            className={`hover:text-orange-400 transition-colors ${isMobile ? "block py-3 text-base" : ""
+              }`}
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
             Login
           </Link>
-          <Link 
+          <Link
             href="/auth/register"
             onClick={() => isMobile && setIsMobileMenuOpen(false)}
           >
-            <Button className={`text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-500 hover:bg-orange-600 ${
-              isMobile ? "w-full mt-2" : "ml-2"
-            }`}>
+            <Button className={`text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-500 hover:bg-orange-600 ${isMobile ? "w-full mt-2" : "ml-2"
+              }`}>
               Sign Up
             </Button>
           </Link>

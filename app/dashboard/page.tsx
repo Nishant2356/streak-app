@@ -385,9 +385,9 @@ export default function UserDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editData),
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) {
         toast({
           title: "Update Failed ❌",
@@ -396,20 +396,20 @@ export default function UserDashboard() {
         });
         return;
       }
-  
+
       toast({
         title: "Profile Updated 🎉",
         description: "Your information has been saved.",
         className: "bg-green-600 text-white border-none",
       });
-  
+
       // Refresh user data
       const encodedEmail = encodeURIComponent(session?.user?.email || "");
       const userRes = await fetch(`/api/users/${encodedEmail}`);
       if (userRes.ok) setUser(await userRes.json());
-  
+
       setShowEditProfile(false);
-  
+
     } catch (err) {
       console.error(err);
     }
@@ -507,19 +507,35 @@ export default function UserDashboard() {
         className="max-w-2xl mx-auto bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-orange-500/10"
       >
         <div className="flex items-center gap-4 mb-6 relative">
-          <div className="w-16 h-16 rounded-full border border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden">
-            {user.image && !imageError ? (
-              <img
-                src={user.image}
-                alt={user.name}
-                className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className="text-orange-500 text-2xl font-bold">
-                {(user.name || "U")[0].toUpperCase()}
-              </div>
-            )}
+          <div className="relative w-16 h-16">
+            {/* Avatar (highest layer) */}
+            <img
+              src={user.image}
+              alt={user.name}
+              className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
+              style={{ zIndex: 15 }}
+              onError={() => setImageError(true)}
+            />
+
+            {/* HEADGEAR */}
+            {(() => {
+              const headgear = user.equipped?.find((e: any) => e.type === "HEADGEAR");
+              if (!headgear) return null;
+
+              return (
+                <img
+                  src={headgear.item.image}
+                  alt="Headgear"
+                  className="absolute pointer-events-none"
+                  style={{
+                    width: headgear.item.width || 60,
+                    top: headgear.item.offsetY ?? -25,
+                    left: headgear.item.offsetX ?? -5,
+                    zIndex: 20,
+                  }}
+                />
+              );
+            })()}
           </div>
 
           <div>
