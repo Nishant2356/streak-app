@@ -103,9 +103,9 @@ export default function LeaderboardPage() {
                             className="absolute pointer-events-none"
                             style={{
                               zIndex: 12,
-                              width: (item.smallWidth ?? item.width ?? 50) * 1,   // shrink for leaderboard
-                              top: item.smallOffsetY  ?? -25,
-                              left: item.smallOffsetX ?? -2,
+                              width: (item.style.smallWidth ?? 50) * 1,   // shrink for leaderboard
+                              top: item.style.smallOffsetY  ?? -25,
+                              left: item.style.smallOffsetX ?? -2,
                             }}
                           />
                         );

@@ -99,9 +99,7 @@ model StoreItem {
   type      ItemType
   price     Int       @default(0)
   image     String
-  width     Int?
-  offsetX   Int?
-  offsetY   Int?
+  style     Json?
   metadata  Json?
 
   createdAt DateTime  @default(now())

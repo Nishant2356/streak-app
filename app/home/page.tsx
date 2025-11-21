@@ -111,10 +111,10 @@ export default function HomePage() {
                           className="absolute pointer-events-none z-30"
                           style={{
                             width:
-                              (item.smallWidth ?? item.width ?? 50) *
+                              (item.style.width ?? 50) *
                               0.8, // Slightly reduced for card size
-                            top: -30,
-                            left: -2,
+                            top: item.style.midOffsetY ?? -30,
+                            left: item.style.midOffsetX ?? 0
                           }}
                         />
                       );
