@@ -528,7 +528,7 @@ export default function UserDashboard() {
                   alt="Headgear"
                   className="absolute pointer-events-none"
                   style={{
-                    width: headgear.item.style.width || 60,
+                    width: headgear.item.style.width ?? 60,
                     top: headgear.item.style.offsetY ?? -25,
                     left: headgear.item.style.offsetX ?? -5,
                     zIndex: 20,
