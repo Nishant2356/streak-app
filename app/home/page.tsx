@@ -91,11 +91,19 @@ export default function HomePage() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative w-12 h-12">
                     {/* Avatar */}
-                    <img
-                      src={user.image || "/default-avatar.png"}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover border border-orange-500/30 relative z-20"
-                    />
+            {(() => {
+              const avatar = user.equipped?.find((e: any) => e.type === "AVATAR");
+
+              return (
+                <img
+                src={avatar? avatar.item.image : user.image}
+                alt={user.name}
+                className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
+                style={{ zIndex: 15 }}
+                onError={() => setImageError(true)}
+              />
+              );
+            })()}
 
                     {/* HEADGEAR */}
                     {(() => {
