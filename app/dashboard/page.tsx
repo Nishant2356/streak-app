@@ -509,13 +509,19 @@ export default function UserDashboard() {
         <div className="flex items-center gap-4 mb-6 relative">
           <div className="relative w-16 h-16">
             {/* Avatar (highest layer) */}
-            <img
-              src={user.image}
-              alt={user.name}
-              className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
-              style={{ zIndex: 15 }}
-              onError={() => setImageError(true)}
-            />
+            {(() => {
+              const avatar = user.equipped?.find((e: any) => e.type === "AVATAR");
+
+              return (
+                <img
+                src={avatar? avatar.item.image : user.image}
+                alt={user.name}
+                className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
+                style={{ zIndex: 15 }}
+                onError={() => setImageError(true)}
+              />
+              );
+            })()}
 
             {/* HEADGEAR */}
             {(() => {
