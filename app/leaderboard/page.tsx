@@ -83,13 +83,14 @@ export default function LeaderboardPage() {
               const avatar = user.equipped?.find((e: any) => e.type === "AVATAR");
 
               return (
-                <img
-                src={avatar? avatar.item.image : user.image}
-                alt={user.name}
-                className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
-                style={{ zIndex: 15 }}
-                onError={() => setImageError(true)}
-              />
+                      <img
+                        src={user.image || "/default-avatar.png"}
+                        alt={user.name}
+                        width={40}
+                        height={40}
+                        className="rounded-full border border-zinc-700 w-full h-full object-cover"
+                        style={{ zIndex: 10 }}
+                      />
               );
             })()}
 
