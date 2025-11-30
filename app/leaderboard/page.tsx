@@ -84,7 +84,7 @@ export default function LeaderboardPage() {
 
               return (
                       <img
-                        src={user.image || "/default-avatar.png"}
+                        src={avatar? avatar.item.image : user.image}
                         alt={user.name}
                         width={40}
                         height={40}
