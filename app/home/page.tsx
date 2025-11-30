@@ -98,9 +98,7 @@ export default function HomePage() {
                 <img
                 src={avatar? avatar.item.image : user.image}
                 alt={user.name}
-                className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
-                style={{ zIndex: 15 }}
-                onError={() => setImageError(true)}
+                className="w-full h-full rounded-full object-cover border border-orange-500/30 relative z-20"
               />
               );
             })()}
