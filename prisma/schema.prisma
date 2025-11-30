@@ -26,6 +26,7 @@ enum ItemType {
   BACKGROUND   // Avatar backgrounds
   AURA         // Glowing effects
   BOOST        // XP boosters
+  AVATAR       // User avatar images
 }
 
 
