@@ -1,7 +1,3 @@
-// =====================================
-// Prisma Schema
-// =====================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,9 +7,95 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================================
-// ENUMS
-// =====================================
+model User {
+  id              Int         @id @default(autoincrement())
+  name            String
+  email           String      @unique
+  password        String
+  username        String      @unique
+  image           String?
+  githubId        String?     @unique
+  leetcodeId      String?     @unique
+  currentStreak   Int         @default(0)
+  longestStreak   Int         @default(0)
+  lastCompletedAt DateTime?
+  xp              Int         @default(0)
+  level           Int         @default(1)
+  badges          String[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  schedules       Schedule[]
+  tasks           Task[]
+  equipped        UserEquip[]
+  inventory       UserItem[]
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  difficulty  Difficulty
+  priority    Priority
+  xpReward    Int        @default(0)
+  completed   Boolean    @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Schedule {
+  id         Int      @id @default(autoincrement())
+  content    String
+  date       DateTime @default(now())
+  prompt     String?
+  tasksCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model StoreItem {
+  id           Int         @id @default(autoincrement())
+  name         String
+  type         ItemType
+  price        Int         @default(0)
+  image        String
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  style        Json?
+  userEquipped UserEquip[]
+  ownedBy      UserItem[]
+}
+
+model UserItem {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  itemId    Int
+  createdAt DateTime  @default(now())
+  item      StoreItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+}
+
+model UserEquip {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  itemId    Int
+  type      ItemType
+  createdAt DateTime  @default(now())
+  item      StoreItem @relation(fields: [itemId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
 enum Difficulty {
   EASY
   MEDIUM
@@ -21,126 +103,16 @@ enum Difficulty {
 }
 
 enum ItemType {
-  HEADGEAR     // Crowns, hats, halos
-  FRAME        // Avatar frames
-  BACKGROUND   // Avatar backgrounds
-  AURA         // Glowing effects
-  BOOST        // XP boosters
-  AVATAR       // User avatar images
+  HEADGEAR
+  FRAME
+  BACKGROUND
+  AURA
+  BOOST
+  AVATAR
 }
-
 
 enum Priority {
-  HIGH     // Must do
-  MEDIUM   // Should do
-  LOW      // Optional
+  HIGH
+  MEDIUM
+  LOW
 }
-
-// =====================================
-// MODELS
-// =====================================
-model User {
-  id              Int       @id @default(autoincrement())
-  name            String
-  email           String    @unique
-  password        String
-  username        String    @unique
-  image           String?
-  currentStreak   Int       @default(0)
-  longestStreak   Int       @default(0)
-  lastCompletedAt DateTime?
-  xp              Int       @default(0)
-  level           Int       @default(1)
-  badges          String[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  tasks           Task[]
-  schedules       Schedule[]
-  inventory       UserItem[]
-  equipped        UserEquip[]   // <-- only 1 relation now
-}
-
-model Task {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?
-  difficulty  Difficulty
-  priority    Priority
-  xpReward    Int          @default(0)
-  completed   Boolean      @default(false)
-  dueDate     DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relation to User
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      Int
-}
-
-model Schedule {
-  id          Int      @id @default(autoincrement())
-  content     String   @db.Text  // The generated schedule text
-  date        DateTime @default(now()) // The date this schedule is for
-  prompt      String?  // Optional: user's custom instructions
-  tasksCount  Int      @default(0) // Number of tasks in this schedule
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relation to User
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      Int
-  
-  @@index([userId, date])
-}
-
-model StoreItem {
-  id        Int       @id @default(autoincrement())
-  name      String
-  type      ItemType
-  price     Int       @default(0)
-  image     String
-  style     Json?
-  metadata  Json?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  ownedBy   UserItem[]
-
-  // ❌ REMOVE old equipped relations 
-  // Equipped items now stored in UserEquip model
-
-  userEquipped UserEquip[]   // <-- NEW correct relation
-}
-
-model UserItem {
-  id        Int        @id @default(autoincrement())
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-
-  item      StoreItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId    Int
-
-  createdAt DateTime   @default(now())
-
-  @@unique([userId, itemId])
-}
-
-model UserEquip {
-  id        Int        @id @default(autoincrement())
-  
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  
-  item      StoreItem  @relation(fields: [itemId], references: [id])
-  itemId    Int
-
-  type      ItemType   // HEADGEAR / FRAME / BACKGROUND / AURA / BOOST...
-
-  createdAt DateTime   @default(now())
-
-  @@unique([userId, type])   // user can equip 1 item per category
-}
-
-

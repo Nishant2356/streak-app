@@ -3,15 +3,21 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Pencil, Upload } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
+  Pencil,
+  Upload,
   Flame,
   Star,
   Trophy,
   PlusCircle,
   ClipboardList,
   CheckCircle,
+  Code,
+  ArrowLeft,
+  Github,
+  Terminal,
+  ExternalLink
 } from "lucide-react";
 import {
   Dialog,
@@ -43,6 +49,10 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // New State for Coding Card Flip
+  const [showCodingStats, setShowCodingStats] = useState(false);
+
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     action: "complete" | "delete" | null;
@@ -75,10 +85,38 @@ export default function UserDashboard() {
     username: "",
     email: "",
     image: "",
+    githubId: "",
+    leetcodeId: "",
   });
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
+
+  // Placeholder stats for LeetCode visualization
+  // In a real implementation with a proxy, you could fetch these live
+  const [leetCodeStats, setLeetCodeStats] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchLeetCode() {
+      if (!user?.leetcodeId) return;
+
+      const res = await fetch(`/api/leetcode?username=${user.leetcodeId}`);
+      const data = await res.json();
+      console.log(data);
+
+      if (!data.error) {
+        setLeetCodeStats({
+          easy: data.easy,
+          medium: data.medium,
+          hard: data.hard,
+          total: data.total
+        });
+      }
+    }
+
+    fetchLeetCode();
+  }, [user?.leetcodeId]);
+
 
   useEffect(() => {
     function updateCountdown() {
@@ -305,6 +343,8 @@ export default function UserDashboard() {
       username: user.username || "",
       email: user.email || "",
       image: user.image || "",
+      githubId: user.githubId || "",
+      leetcodeId: user.leetcodeId || "",
     });
     setImagePreview(user.image || "");
     setShowEditProfile(true);
@@ -499,112 +539,283 @@ export default function UserDashboard() {
         </p>
       </div>
 
-      {/* User Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-orange-500/10"
-      >
-        <div className="flex items-center gap-4 mb-6 relative">
-          <div className="relative w-16 h-16">
-            {/* Avatar (highest layer) */}
-            {(() => {
-              const avatar = user.equipped?.find((e: any) => e.type === "AVATAR");
+      {/* Main Stats Card Area */}
+      <div className="relative max-w-2xl mx-auto min-h-[400px]">
+        <AnimatePresence mode="wait">
+          {!showCodingStats ? (
+            /* --- DEFAULT PROFILE VIEW --- */
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, rotateY: 90 }}
+              animate={{ opacity: 1, rotateY: 0 }}
+              exit={{ opacity: 0, rotateY: -90 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                pointerEvents: showCodingStats ? "none" : "auto",
+                zIndex: showCodingStats ? 0 : 10,
+              }}
+              className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-orange-500/10 h-full relative isolate"
+            >
 
-              return (
-                <img
-                src={avatar? avatar.item.image : user.image}
-                alt={user.name}
-                className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
-                style={{ zIndex: 15 }}
-                onError={() => setImageError(true)}
-              />
-              );
-            })()}
-
-            {/* HEADGEAR */}
-            {(() => {
-              const headgear = user.equipped?.find((e: any) => e.type === "HEADGEAR");
-              if (!headgear) return null;
-
-              return (
-                <img
-                  src={headgear.item.image}
-                  alt="Headgear"
-                  className="absolute pointer-events-none"
-                  style={{
-                    width: headgear.item.style.width ?? 60,
-                    top: headgear.item.style.offsetY ?? -25,
-                    left: headgear.item.style.offsetX ?? -5,
-                    zIndex: 20,
-                  }}
-                />
-              );
-            })()}
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              {user.name}
+              {/* Toggle to Code View Button */}
               <button
-                onClick={() => openEditProfile()}
-                className="text-zinc-400 hover:text-orange-400"
+                onClick={() => setShowCodingStats(true)}
+                className="absolute top-3 right-3 p-3 bg-zinc-800 rounded-full hover:bg-zinc-700 hover:text-orange-400 transition-colors border border-zinc-700 z-50"
+                style={{ cursor: "pointer" }}
+                title="View Coding Stats"
               >
-                <Pencil className="w-5 h-5" />
+
+                <Code className="w-5 h-5 text-zinc-400 group-hover:text-orange-400" />
               </button>
-            </h2>
-            <p className="text-zinc-400 text-sm">{user.email}</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
-          <div className="bg-zinc-800/60 rounded-xl p-4">
-            <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-            <p className="text-orange-400 font-medium">Streak</p>
-            <p className="text-xl font-bold">{user.currentStreak || 0}</p>
-          </div>
-          <div className="bg-zinc-800/60 rounded-xl p-4">
-            <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
-            <p className="text-yellow-400 font-medium">Level</p>
-            <p className="text-xl font-bold">{user.level || 1}</p>
-          </div>
-          <div className="bg-zinc-800/60 rounded-xl p-4">
-            <Star className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-            <p className="text-blue-400 font-medium">XP</p>
-            <p className="text-xl font-bold">{user.xp || 0}</p>
-          </div>
-        </div>
+              <div className="flex items-center gap-4 mb-6 relative">
+                <div className="relative w-16 h-16">
+                  {/* Avatar (highest layer) */}
+                  {(() => {
+                    const avatar = user.equipped?.find((e: any) => e.type === "AVATAR");
 
-        <div className="mt-4 bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-700/50 rounded-xl p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm text-zinc-400">Until Midnight:</span>
-            </div>
-            <span className="text-lg font-bold text-orange-400 font-mono">
-              {timeUntilMidnight || "..."}
-            </span>
-          </div>
-        </div>
+                    return (
+                      <img
+                        src={avatar ? avatar.item.image : user.image}
+                        alt={user.name}
+                        className="absolute inset-0 w-full h-full object-cover rounded-full border border-orange-500/30 bg-zinc-800"
+                        style={{ zIndex: 15 }}
+                        onError={() => setImageError(true)}
+                      />
+                    );
+                  })()}
 
-        <div className="mt-6 text-center">
-          <Button
-            onClick={() => setShowModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-md flex items-center gap-2 mx-auto"
-          >
-            <PlusCircle className="w-5 h-5" /> Assign Task
-          </Button>
-          <Button
-            onClick={() => setShowScheduleModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md flex items-center gap-2 mx-auto mt-4"
-          >
-            📅 Generate Schedule
-          </Button>
-        </div>
-      </motion.div>
+                  {/* HEADGEAR */}
+                  {(() => {
+                    const headgear = user.equipped?.find((e: any) => e.type === "HEADGEAR");
+                    if (!headgear) return null;
+
+                    return (
+                      <img
+                        src={headgear.item.image}
+                        alt="Headgear"
+                        className="absolute pointer-events-none"
+                        style={{
+                          width: headgear.item.style.width ?? 60,
+                          top: headgear.item.style.offsetY ?? -25,
+                          left: headgear.item.style.offsetX ?? -5,
+                          zIndex: 20,
+                        }}
+                      />
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-semibold flex items-center gap-2">
+                    {user.name}
+                    <button
+                      onClick={() => openEditProfile()}
+                      className="text-zinc-400 hover:text-orange-400"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                  </h2>
+                  <p className="text-zinc-400 text-sm">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                <div className="bg-zinc-800/60 rounded-xl p-4">
+                  <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
+                  <p className="text-orange-400 font-medium">Streak</p>
+                  <p className="text-xl font-bold">{user.currentStreak || 0}</p>
+                </div>
+                <div className="bg-zinc-800/60 rounded-xl p-4">
+                  <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
+                  <p className="text-yellow-400 font-medium">Level</p>
+                  <p className="text-xl font-bold">{user.level || 1}</p>
+                </div>
+                <div className="bg-zinc-800/60 rounded-xl p-4">
+                  <Star className="w-6 h-6 text-blue-400 mx-auto mb-1" />
+                  <p className="text-blue-400 font-medium">XP</p>
+                  <p className="text-xl font-bold">{user.xp || 0}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-700/50 rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-zinc-400">Until Midnight:</span>
+                  </div>
+                  <span className="text-lg font-bold text-orange-400 font-mono">
+                    {timeUntilMidnight || "..."}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <Button
+                  onClick={() => setShowModal(true)}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-md flex items-center gap-2 mx-auto"
+                >
+                  <PlusCircle className="w-5 h-5" /> Assign Task
+                </Button>
+                <Button
+                  onClick={() => setShowScheduleModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md flex items-center gap-2 mx-auto mt-4"
+                >
+                  📅 Generate Schedule
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            /* --- CODING PROGRESS VIEW (NEW) --- */
+            <motion.div
+              key="coding"
+              initial={{ opacity: 0, rotateY: 90 }}
+              animate={{ opacity: 1, rotateY: 0 }}
+              exit={{ opacity: 0, rotateY: -90 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                pointerEvents: showCodingStats ? "auto" : "none",
+                zIndex: showCodingStats ? 10 : 0,
+              }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg shadow-blue-500/10 h-full relative overflow-hidden isolate"
+            >
+
+              {/* Back Button */}
+              <button
+                onClick={() => setShowCodingStats(false)}
+                className="absolute top-4 right-4 p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-zinc-100">
+                <Terminal className="w-6 h-6 text-green-400" />
+                Coding Profile
+              </h2>
+
+              {(!user.githubId && !user.leetcodeId) ? (
+                <div className="flex flex-col items-center justify-center h-[200px] text-center">
+                  <p className="text-zinc-400 mb-4">Link your accounts to see stats.</p>
+                  <Button onClick={() => { setShowCodingStats(false); openEditProfile(); }} variant="outline" className="border-zinc-700 text-zinc-300">
+                    Link Accounts
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* GitHub Section */}
+                  {user.githubId && (
+                    <div className="bg-black/40 rounded-xl p-4 border border-zinc-800">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Github className="w-5 h-5 text-white" />
+                          <span className="font-semibold text-sm">GitHub Contributions</span>
+                        </div>
+                        <a href={`https://github.com/${user.githubId}`} target="_blank" rel="noreferrer" className="text-xs text-blue-400 flex items-center gap-1 hover:underline">
+                          @{user.githubId} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                      <div className="overflow-hidden rounded-lg bg-white/5 p-2">
+                        {/* Using ghchart API to generate the heatmap image */}
+                        <img
+                          src={`https://ghchart.rshah.org/4ade80/${user.githubId}`}
+                          alt="Github Chart"
+                          className="w-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LeetCode Section */}
+                  {user.leetcodeId && (
+
+                    <div className="bg-black/40 rounded-xl p-4 border border-zinc-800">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Code className="w-5 h-5 text-yellow-500" />
+                          <span className="font-semibold text-sm">LeetCode Progress</span>
+                        </div>
+                        <a href={`https://leetcode.com/${user.leetcodeId}`} target="_blank" rel="noreferrer" className="text-xs text-blue-400 flex items-center gap-1 hover:underline">
+                          @{user.leetcodeId} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+
+                      {leetCodeStats && (
+                        <div className="space-y-6">
+                          {/* TOTAL SOLVED + RANK */}
+                          <div className="text-center">
+                            <p className="text-zinc-400 text-sm">Total Problems Solved</p>
+                            <motion.p
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ duration: 0.4 }}
+                              className="text-4xl font-extrabold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent"
+                            >
+                              {leetCodeStats.total}
+                            </motion.p>
+                          </div>
+
+                          {/* PROGRESS BARS */}
+                          <div className="space-y-3">
+                            {/* Easy */}
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-green-400 font-medium">Easy</span>
+                                <span className="text-zinc-400">{leetCodeStats.easy}</span>
+                              </div>
+                              <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min((leetCodeStats.easy / 800) * 100, 100)}%` }}
+                                  transition={{ duration: 1, ease: "easeOut" }}
+                                  className="h-full bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Medium */}
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-yellow-400 font-medium">Medium</span>
+                                <span className="text-zinc-400">{leetCodeStats.medium}</span>
+                              </div>
+                              <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min((leetCodeStats.medium / 600) * 100, 100)}%` }}
+                                  transition={{ duration: 1, ease: "easeOut" }}
+                                  className="h-full bg-yellow-500 rounded-full shadow-[0_0_10px_rgba(234,179,8,0.6)]"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Hard */}
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-red-400 font-medium">Hard</span>
+                                <span className="text-zinc-400">{leetCodeStats.hard}</span>
+                              </div>
+                              <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min((leetCodeStats.hard / 300) * 100, 100)}%` }}
+                                  transition={{ duration: 1, ease: "easeOut" }}
+                                  className="h-full bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.6)]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Generated Schedule Display */}
       {generatedSchedule && (
@@ -888,7 +1099,7 @@ export default function UserDashboard() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
-        <DialogContent className="bg-zinc-900 border border-zinc-700 text-white max-w-lg">
+        <DialogContent className="bg-zinc-900 border border-zinc-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Edit Profile</DialogTitle>
           </DialogHeader>
@@ -898,7 +1109,7 @@ export default function UserDashboard() {
             <div>
               <label className="text-sm text-zinc-400 mb-2 block">Profile Picture</label>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full border-2 border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden">
+                <div className="w-20 h-20 rounded-full border-2 border-orange-500/30 bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -985,9 +1196,43 @@ export default function UserDashboard() {
               />
             </div>
 
-            <p className="text-xs text-zinc-500">
-              Password cannot be changed from here.
-            </p>
+            <div className="pt-4 border-t border-zinc-800">
+              <h3 className="text-md font-semibold text-orange-400 mb-3 flex items-center gap-2">
+                <Code className="w-4 h-4" /> Coding Profiles
+              </h3>
+              <div className="space-y-3">
+                {/* GitHub ID */}
+                <div>
+                  <label className="text-sm text-zinc-400 flex items-center gap-2">
+                    <Github className="w-3 h-3" /> GitHub Username
+                  </label>
+                  <Input
+                    value={editData.githubId}
+                    onChange={(e) =>
+                      setEditData({ ...editData, githubId: e.target.value })
+                    }
+                    placeholder="e.g. torvalds"
+                    className="bg-zinc-800 border-zinc-700 mt-1"
+                  />
+                </div>
+
+                {/* LeetCode ID */}
+                <div>
+                  <label className="text-sm text-zinc-400 flex items-center gap-2">
+                    <Code className="w-3 h-3" /> LeetCode Username
+                  </label>
+                  <Input
+                    value={editData.leetcodeId}
+                    onChange={(e) =>
+                      setEditData({ ...editData, leetcodeId: e.target.value })
+                    }
+                    placeholder="e.g. leetcoder123"
+                    className="bg-zinc-800 border-zinc-700 mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <DialogFooter className="mt-6">

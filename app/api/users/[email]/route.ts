@@ -6,7 +6,6 @@ export async function GET(
   { params }: { params: { email: string } | Promise<{ email: string }> }
 ) {
   try {
-    // Handle both sync (Next.js 16.0.1) and async (Next.js 15+) params
     const emailParam = params instanceof Promise ? await params : params;
     const decodedEmail = decodeURIComponent(emailParam.email);
 
@@ -18,6 +17,11 @@ export async function GET(
         email: true,
         username: true,
         image: true,
+
+        // ✅ ADD THESE (THE ROOT CAUSE)
+        githubId: true,
+        leetcodeId: true,
+
         currentStreak: true,
         longestStreak: true,
         xp: true,
@@ -30,7 +34,7 @@ export async function GET(
           include: {
             item: true,
           },
-        },  
+        },
       },
     });
 

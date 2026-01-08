@@ -52,6 +52,8 @@ export async function PATCH(req: Request) {
         username: data.username,
         email: data.email,
         image: data.image,
+        githubId: data.githubId,
+        leetcodeId: data.leetcodeId,
       },
     });
 
